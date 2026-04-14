@@ -1,0 +1,859 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tyson Foods — Campaign Intelligence</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,700;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+
+:root {
+  --red: #D0021B;
+  --red-dark: #A50015;
+  --red-light: #FF1F38;
+  --red-dim: rgba(208,2,27,.12);
+  --yellow: #F5C518;
+  --black: #080808;
+  --bg: #0D0D0D;
+  --surface: #161616;
+  --surface2: #1E1E1E;
+  --surface3: #252525;
+  --border: rgba(255,255,255,.07);
+  --border2: rgba(255,255,255,.12);
+  --text: #F0F0F0;
+  --muted: #777;
+  --muted2: #999;
+  --spooky: #7B2FBE;
+  --spooky-l: #A855F7;
+  --nfl: #1A56DB;
+  --nfl-l: #60A5FA;
+  --navidad: #16A34A;
+  --navidad-l: #4ADE80;
+  --sw: 230px;
+}
+
+html, body { height: 100%; overflow: hidden; }
+body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; display: flex; }
+
+/* ─────────── SIDEBAR ─────────── */
+#sb {
+  width: var(--sw); min-width: var(--sw); height: 100vh;
+  background: var(--surface); border-right: 1px solid var(--border);
+  display: flex; flex-direction: column;
+  position: fixed; left: 0; top: 0; z-index: 200;
+  transition: transform .25s;
+}
+
+/* LOGO SLOT */
+.sb-logo-slot {
+  padding: 20px 20px 16px;
+  border-bottom: 1px solid var(--border);
+  display: flex; flex-direction: column; gap: 10px;
+}
+.logo-img-wrap {
+  width: 100%; height: 64px;
+  background: var(--surface2);
+  border: 1.5px dashed rgba(255,255,255,.15);
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden; cursor: pointer; position: relative;
+  transition: border-color .2s;
+}
+.logo-img-wrap:hover { border-color: var(--red); }
+.logo-img-wrap img {
+  max-width: 100%; max-height: 100%; object-fit: contain;
+  display: none; /* shown when uploaded */
+}
+.logo-placeholder {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  pointer-events: none;
+}
+.logo-placeholder span:first-child { font-size: 18px; }
+.logo-placeholder span:last-child { font-size: 9px; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; }
+#logo-file-input { display: none; }
+.sb-sub { font-size: 10px; color: var(--muted); letter-spacing: 1.5px; text-transform: uppercase; }
+
+.sb-period {
+  margin: 12px 16px;
+  background: var(--red-dim); border: 1px solid rgba(208,2,27,.25);
+  border-radius: 8px; padding: 7px 12px;
+  font-size: 10px; color: var(--red-light); letter-spacing: 1.2px; text-transform: uppercase; font-weight: 600;
+}
+
+.sb-nav { flex: 1; overflow-y: auto; padding: 4px 10px; display: flex; flex-direction: column; gap: 1px; }
+.sb-nav::-webkit-scrollbar { display: none; }
+.sb-grp { font-size: 9px; color: var(--muted); letter-spacing: 2px; text-transform: uppercase; padding: 12px 8px 5px; font-weight: 700; }
+
+.ni {
+  display: flex; align-items: center; gap: 9px;
+  padding: 9px 12px; border-radius: 10px; cursor: pointer;
+  transition: background .12s, color .12s; font-size: 13px; font-weight: 500;
+  color: var(--muted2); border: 1px solid transparent; white-space: nowrap;
+}
+.ni:hover { background: var(--surface2); color: var(--text); }
+.ni.active { background: var(--surface3); color: var(--text); border-color: var(--border2); }
+.ni.active .nd { background: var(--red); }
+.nd { width: 6px; height: 6px; border-radius: 50%; background: var(--muted); flex-shrink: 0; transition: background .12s; }
+.ni.sp.active .nd { background: var(--spooky-l); }
+.ni.nf.active .nd { background: var(--nfl-l); }
+.nb { margin-left: auto; font-size: 9px; padding: 2px 7px; border-radius: 100px; font-weight: 700; letter-spacing: .4px; }
+.nb.h { background: var(--red-dim); color: var(--red-light); }
+.nb.y { background: rgba(245,197,24,.15); color: var(--yellow); }
+
+.sb-foot { padding: 14px 20px; border-top: 1px solid var(--border); font-size: 10px; color: var(--muted); }
+.sb-foot strong { color: var(--muted2); }
+
+/* ─────────── MAIN ─────────── */
+#main { margin-left: var(--sw); flex: 1; height: 100vh; overflow-y: auto; overflow-x: hidden; }
+#main::-webkit-scrollbar { width: 4px; }
+#main::-webkit-scrollbar-thumb { background: var(--surface3); border-radius: 3px; }
+
+/* TOPBAR */
+.tb {
+  position: sticky; top: 0; z-index: 100;
+  background: rgba(13,13,13,.9); backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border);
+  padding: 0 32px; height: 54px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.tb-title { font-family: 'Bebas Neue'; font-size: 22px; letter-spacing: 1px; }
+.tb-chips { display: flex; gap: 8px; }
+.tb-chip { font-size: 11px; padding: 4px 12px; border-radius: 100px; border: 1px solid var(--border2); color: var(--muted2); font-weight: 500; }
+.tb-chip.live { border-color: rgba(208,2,27,.35); color: var(--red-light); }
+.tb-chip.live::before { content: '● '; font-size: 8px; }
+.mob-btn { display: none; background: none; border: none; color: #fff; font-size: 22px; cursor: pointer; }
+
+/* PAGES */
+.pg { display: none; padding: 32px; min-height: calc(100vh - 54px); }
+.pg.on { display: block; animation: fi .22s ease both; }
+@keyframes fi { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+/* ─────────── HERO (Overview) ─────────── */
+.hero {
+  position: relative; overflow: hidden;
+  background: var(--red-dark);
+  border-radius: 24px; margin-bottom: 20px; padding: 48px 44px;
+}
+.hero::before {
+  content: '';  position: absolute; inset: 0;
+  background: radial-gradient(ellipse 70% 70% at 85% 50%, rgba(0,0,0,.55) 0%, transparent 70%),
+              radial-gradient(ellipse 40% 40% at 10% 80%, rgba(245,197,24,.12) 0%, transparent 60%);
+}
+.hero-noise {
+  position: absolute; inset: 0; pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.05'/%3E%3C/svg%3E");
+  opacity: .25;
+}
+.hero-badge {
+  display: inline-flex; align-items: center; gap: 7px;
+  background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.2);
+  border-radius: 100px; padding: 5px 14px; font-size: 11px; letter-spacing: 1.5px;
+  text-transform: uppercase; font-weight: 600; color: #fff; margin-bottom: 24px;
+  position: relative;
+}
+.hero-badge::before { content: '●'; color: var(--yellow); font-size: 8px; }
+.hero-title {
+  font-family: 'Bebas Neue';
+  font-size: clamp(56px, 8vw, 110px);
+  line-height: .92; color: #fff; position: relative; letter-spacing: 2px;
+}
+.hero-title span { color: var(--yellow); }
+.hero-sub {
+  font-size: 14px; font-weight: 300; color: rgba(255,255,255,.65);
+  margin-top: 18px; max-width: 500px; line-height: 1.65; position: relative;
+}
+.hero-stats { margin-top: 36px; display: flex; gap: 12px; flex-wrap: wrap; position: relative; }
+.hs {
+  background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.15);
+  border-radius: 14px; padding: 16px 22px; min-width: 140px;
+  backdrop-filter: blur(10px);
+}
+.hs .v { font-family: 'Bebas Neue'; font-size: 34px; color: #fff; line-height: 1; }
+.hs .l { font-size: 10px; color: rgba(255,255,255,.5); text-transform: uppercase; letter-spacing: 1px; margin-top: 3px; }
+.hero-camps {
+  position: absolute; right: 44px; top: 50%; transform: translateY(-50%);
+  display: flex; flex-direction: column; gap: 10px;
+}
+@media(max-width: 900px) { .hero-camps { display: none; } }
+.hc-pill {
+  padding: 9px 18px; border-radius: 100px; font-family: 'Bebas Neue'; font-size: 16px;
+  letter-spacing: 1px; border: 2px solid; text-align: center;
+}
+.hc-pill.sp { border-color: var(--spooky-l); color: var(--spooky-l); background: rgba(123,47,190,.15); }
+.hc-pill.nf { border-color: var(--nfl-l); color: var(--nfl-l); background: rgba(26,86,219,.15); }
+.hc-pill.nv { border-color: var(--navidad-l); color: var(--navidad-l); background: rgba(22,163,74,.12); }
+.hc-pill.cl { border-color: rgba(255,255,255,.25); color: rgba(255,255,255,.6); background: rgba(255,255,255,.07); }
+
+/* ─────────── SECTION HEADER ─────────── */
+.sh { margin-bottom: 24px; }
+.sl { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--red); font-weight: 700; margin-bottom: 5px; }
+.st { font-family: 'Bebas Neue'; font-size: 44px; line-height: 1; color: #fff; }
+.sd { font-size: 13px; color: var(--muted2); margin-top: 5px; max-width: 500px; line-height: 1.65; }
+
+/* ─────────── STAT STRIP ─────────── */
+.strip { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 20px; }
+.sx {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
+  padding: 20px; position: relative; overflow: hidden; transition: border-color .15s, transform .15s;
+}
+.sx:hover { border-color: var(--border2); transform: translateY(-2px); }
+.sx::after { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2.5px; background: var(--ac, var(--red)); }
+.sx .v { font-family: 'Bebas Neue'; font-size: 34px; line-height: 1; color: #fff; }
+.sx .l { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-top: 4px; }
+.sx .s { font-size: 10px; color: var(--muted); margin-top: 2px; font-family: 'JetBrains Mono'; }
+
+/* ─────────── GRID ─────────── */
+.g2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.g3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+@media(max-width: 1000px) { .g2, .g3 { grid-template-columns: 1fr; } }
+.mt { margin-top: 14px; }
+
+/* ─────────── CARD ─────────── */
+.card {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 20px;
+  padding: 24px; transition: border-color .15s;
+}
+.card:hover { border-color: var(--border2); }
+.ct { font-family: 'Bebas Neue'; font-size: 20px; margin-bottom: 3px; }
+.cd { font-size: 11px; color: var(--muted); margin-bottom: 18px; }
+.ch { height: 220px; position: relative; }
+.ch-lg { height: 270px; position: relative; }
+
+/* ─────────── CAMPAIGN HERO CARDS ─────────── */
+.cc {
+  border-radius: 22px; padding: 32px; position: relative; overflow: hidden;
+  border: 1px solid; margin-bottom: 14px;
+}
+.cc.sp { background: linear-gradient(135deg, #0d0618 0%, #1a0b35 60%, #2e1268 100%); border-color: rgba(168,85,247,.3); }
+.cc.nf { background: linear-gradient(135deg, #060d1f 0%, #0b1e45 60%, #122e78 100%); border-color: rgba(96,165,250,.3); }
+.cc-em { font-size: 60px; position: absolute; top: 22px; right: 22px; opacity: .45; }
+.cc-tag { font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; font-weight: 700; padding: 4px 12px; border-radius: 100px; display: inline-block; margin-bottom: 10px; }
+.sp .cc-tag { background: rgba(168,85,247,.2); color: var(--spooky-l); border: 1px solid rgba(168,85,247,.35); }
+.nf .cc-tag { background: rgba(96,165,250,.2); color: var(--nfl-l); border: 1px solid rgba(96,165,250,.35); }
+.cc-name { font-family: 'Bebas Neue'; font-size: 42px; margin-bottom: 10px; }
+.sp .cc-name { color: var(--spooky-l); } .nf .cc-name { color: var(--nfl-l); }
+.cc-desc { font-size: 13px; color: rgba(255,255,255,.5); line-height: 1.7; margin-bottom: 20px; max-width: 380px; }
+.cc-stats { display: flex; gap: 22px; flex-wrap: wrap; }
+.csv { font-family: 'Bebas Neue'; font-size: 28px; }
+.sp .csv { color: var(--spooky-l); } .nf .csv { color: var(--nfl-l); }
+.csl { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .8px; }
+
+/* ─────────── TABLE ─────────── */
+.dt { width: 100%; border-collapse: collapse; }
+.dt th { font-size: 10px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--muted); padding: 9px 12px; text-align: left; border-bottom: 1px solid var(--border); font-weight: 700; }
+.dt td { padding: 12px 12px; border-bottom: 1px solid rgba(255,255,255,.03); font-size: 13px; }
+.dt tr:last-child td { border-bottom: none; }
+.dt tr:hover td { background: rgba(255,255,255,.025); }
+.pp { font-size: 9px; padding: 3px 8px; border-radius: 6px; font-weight: 700; letter-spacing: .4px; text-transform: uppercase; }
+.pp.ig { background: rgba(225,48,108,.15); color: #F472B6; border: 1px solid rgba(225,48,108,.25); }
+.pp.fb { background: rgba(24,119,242,.15); color: #60A5FA; border: 1px solid rgba(24,119,242,.25); }
+.nh { font-family: 'JetBrains Mono'; font-weight: 500; color: var(--yellow); }
+.ng { font-family: 'JetBrains Mono'; font-weight: 500; color: var(--navidad-l); }
+.anc { max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ─────────── TIMELINE ─────────── */
+.tl { display: flex; overflow-x: auto; }
+.tl::-webkit-scrollbar { height: 3px; }
+.tl::-webkit-scrollbar-thumb { background: var(--surface3); border-radius: 2px; }
+.tc { flex: 1; min-width: 110px; border-left: 1px solid var(--border); padding: 14px; position: relative; }
+.tc:first-child { border-left: none; }
+.tdw { position: absolute; top: -5px; left: 14px; }
+.td { width: 10px; height: 10px; border-radius: 50%; background: var(--muted); border: 2px solid var(--bg); }
+.tc.sp .td { background: var(--spooky-l); box-shadow: 0 0 8px var(--spooky-l); }
+.tc.nf .td { background: var(--nfl-l); box-shadow: 0 0 8px var(--nfl-l); }
+.tc.nv .td { background: var(--navidad-l); box-shadow: 0 0 8px var(--navidad-l); }
+.tc.on .td { background: var(--red); box-shadow: 0 0 8px var(--red); }
+.tm { font-family: 'Bebas Neue'; font-size: 16px; padding-top: 10px; color: var(--muted); }
+.tc.sp .tm, .tc.nf .tm, .tc.nv .tm, .tc.on .tm { color: #fff; }
+.tt-tags { margin-top: 6px; display: flex; flex-direction: column; gap: 3px; }
+.tt { font-size: 9px; padding: 2px 7px; border-radius: 100px; font-weight: 700; width: fit-content; }
+.tt.sp { background: rgba(168,85,247,.2); color: var(--spooky-l); }
+.tt.nf { background: rgba(96,165,250,.2); color: var(--nfl-l); }
+.tt.nv { background: rgba(74,222,128,.15); color: var(--navidad-l); }
+.tt.cl { background: var(--surface2); color: var(--muted2); }
+.tk { margin-top: 8px; }
+.tkr { font-size: 10px; color: var(--muted); font-family: 'JetBrains Mono'; }
+.tkr b { color: var(--text); }
+
+/* ─────────── STORYTELLING ─────────── */
+.sc {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 20px;
+  padding: 24px 28px; border-left: 3px solid var(--ac, var(--red)); margin-bottom: 12px;
+  transition: border-color .15s;
+}
+.sc:hover { border-color: var(--border2); }
+.sc-m { font-family: 'Bebas Neue'; font-size: 32px; color: var(--ac, var(--red)); margin-bottom: 4px; }
+.sc-t { font-size: 17px; font-weight: 700; margin-bottom: 10px; }
+.sc-b { font-size: 13px; color: var(--muted2); line-height: 1.8; }
+.sc-cs { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 14px; }
+.sc-c { font-size: 10px; padding: 4px 12px; border-radius: 100px; font-weight: 600; }
+
+/* ─────────── BEST POSTS ─────────── */
+.mpills { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; }
+.mpill {
+  padding: 8px 18px; border-radius: 10px; font-size: 13px; font-weight: 600;
+  border: 1px solid var(--border); background: var(--surface); color: var(--muted2);
+  cursor: pointer; transition: all .12s;
+}
+.mpill:hover { border-color: var(--border2); color: #fff; }
+.mpill.on { background: var(--surface3); color: #fff; border-color: var(--border2); }
+.mpill.sp.on { border-color: rgba(168,85,247,.4); color: var(--spooky-l); }
+.mpill.nf.on { border-color: rgba(96,165,250,.4); color: var(--nfl-l); }
+
+.ppanel { display: none; }
+.ppanel.on { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+@media(max-width: 760px) { .ppanel.on { grid-template-columns: 1fr; } }
+
+.post-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
+.pc-head {
+  padding: 14px 18px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.pc-badge { font-size: 11px; font-weight: 700; letter-spacing: .5px; text-transform: uppercase; }
+.pc-badge.r { color: var(--yellow); }
+.pc-badge.e { color: var(--navidad-l); }
+.pc-body { padding: 24px; display: flex; flex-direction: column; align-items: center; gap: 14px; }
+.pc-body.filled { padding: 0; }
+.pc-icon { width: 48px; height: 48px; border-radius: 12px; background: var(--surface2); display: flex; align-items: center; justify-content: center; font-size: 22px; }
+.pc-hint { font-size: 12px; color: var(--muted); text-align: center; line-height: 1.55; }
+.pc-input {
+  width: 100%; background: var(--surface2); border: 1px solid var(--border2);
+  border-radius: 10px; padding: 10px 14px; color: var(--text); font-size: 11px;
+  font-family: 'JetBrains Mono'; resize: none; height: 72px; transition: border-color .15s;
+}
+.pc-input:focus { outline: none; border-color: var(--red); }
+.pc-btn {
+  width: 100%; background: var(--red); border: none; color: #fff; padding: 11px;
+  border-radius: 10px; font-size: 13px; font-weight: 700; cursor: pointer;
+  font-family: 'DM Sans'; letter-spacing: .4px; transition: background .12s;
+}
+.pc-btn:hover { background: var(--red-light); }
+.emb-rendered { width: 100%; }
+.emb-rendered iframe, .emb-rendered blockquote { max-width: 100% !important; }
+
+/* ─────────── MISC ─────────── */
+.div { height: 1px; background: var(--border); margin: 20px 0; }
+.br { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.br-l { font-size: 13px; color: var(--muted2); min-width: 120px; }
+.br-w { flex: 1; height: 6px; background: var(--surface3); border-radius: 3px; overflow: hidden; }
+.br-f { height: 100%; border-radius: 3px; }
+.br-v { font-family: 'JetBrains Mono'; font-size: 12px; min-width: 58px; text-align: right; }
+
+/* ─────────── MOBILE ─────────── */
+@media(max-width: 768px) {
+  :root { --sw: 0px; }
+  #sb { transform: translateX(-230px); width: 230px; }
+  #sb.open { transform: translateX(0); }
+  #main { margin-left: 0; }
+  .mob-btn { display: block; }
+  .pg { padding: 16px; }
+  .tb { padding: 0 16px; }
+  .hero { padding: 28px 24px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ══════════ SIDEBAR ══════════ -->
+<nav id="sb">
+  <!-- LOGO SLOT -->
+  <div class="sb-logo-slot">
+    <div class="logo-img-wrap" onclick="document.getElementById('logo-file-input').click()" title="Clic para cargar el logo de Tyson">
+      <img id="logo-img" src="" alt="Tyson Foods Logo">
+      <div class="logo-placeholder" id="logo-ph">
+        <span>🏷️</span>
+        <span>Cargar Logo</span>
+      </div>
+    </div>
+    <input type="file" id="logo-file-input" accept="image/*">
+    <div class="sb-sub">Resultados Semestrales</div>
+  </div>
+
+  <div class="sb-period">Oct 2025 — Mar 2026</div>
+
+  <div class="sb-nav">
+    <div class="sb-grp">Vistas</div>
+    <div class="ni active" onclick="nav('ov',this)"><span class="nd"></span>Overview</div>
+    <div class="ni" onclick="nav('meta',this)"><span class="nd"></span>Meta Ads</div>
+    <div class="ni" onclick="nav('tiktok',this)"><span class="nd"></span>TikTok Ads</div>
+
+    <div class="sb-grp">Campañas</div>
+    <div class="ni sp" onclick="nav('spooky',this)"><span class="nd"></span>👻 Spooky Nuggets<span class="nb h">OCT</span></div>
+    <div class="ni nf" onclick="nav('nfl',this)"><span class="nd"></span>🏈 NFL Campaign<span class="nb y">ENE</span></div>
+
+    <div class="sb-grp">Análisis</div>
+    <div class="ni" onclick="nav('topads',this)"><span class="nd"></span>Top Ads</div>
+    <div class="ni" onclick="nav('story',this)"><span class="nd"></span>Narrativa Mensual</div>
+    <div class="ni" onclick="nav('posts',this)"><span class="nd"></span>Mejores Posts</div>
+  </div>
+  <div class="sb-foot">Preparado por<br><strong>República Digital</strong> × Tyson Foods</div>
+</nav>
+
+<!-- ══════════ MAIN ══════════ -->
+<div id="main">
+
+  <!-- TOPBAR -->
+  <div class="tb">
+    <div style="display:flex;align-items:center;gap:10px">
+      <button class="mob-btn" onclick="document.getElementById('sb').classList.toggle('open')">☰</button>
+      <div class="tb-title" id="tbt">Overview</div>
+    </div>
+    <div class="tb-chips">
+      <span class="tb-chip">Meta + TikTok</span>
+      <span class="tb-chip live">6 meses activos</span>
+    </div>
+  </div>
+
+  <!-- ══ OVERVIEW ══ -->
+  <div class="pg on" id="pg-ov">
+    <div class="hero">
+      <div class="hero-noise"></div>
+      <div class="hero-badge">República Digital × Tyson Foods · Reporte 2025–2026</div>
+      <h1 class="hero-title">TYSON<br><span>FOODS</span></h1>
+      <p class="hero-sub">Seis meses de campañas digitales presentes en distintos momentos del calendario cultural, desde Halloween hasta el Super Bowl.</p>
+      <div class="hero-stats">
+        <div class="hs"><div class="v">16.3M</div><div class="l">Personas Alcanzadas</div></div>
+        <div class="hs"><div class="v">8.1M</div><div class="l">Video Views TikTok</div></div>
+        <div class="hs"><div class="v">578K</div><div class="l">Interacciones Meta</div></div>
+        <div class="hs"><div class="v">$221K</div><div class="l">Inversión MXN</div></div>
+      </div>
+      <div class="hero-camps">
+        <div class="hc-pill sp">👻 Spooky Nuggets</div>
+        <div class="hc-pill nf">🏈 NFL Campaign</div>
+        <div class="hc-pill nv">🎄 Navidad</div>
+        <div class="hc-pill cl">📅 Calendario</div>
+      </div>
+    </div>
+
+    <!-- Timeline -->
+    <div class="card" style="margin-bottom:14px">
+      <div class="ct">Línea de Tiempo del Semestre</div>
+      <div class="cd">Actividad por mes — campañas y métricas clave</div>
+      <div class="tl" id="tl-main"></div>
+    </div>
+
+    <div class="g2">
+      <div class="card"><div class="ct">Alcance por Mes — Meta</div><div class="cd">Facebook + Instagram acumulado</div><div class="ch"><canvas id="c-ov-r"></canvas></div></div>
+      <div class="card"><div class="ct">Inversión Mensual (MXN)</div><div class="cd">Meta vs TikTok</div><div class="ch"><canvas id="c-ov-s"></canvas></div></div>
+    </div>
+  </div>
+
+  <!-- ══ META ══ -->
+  <div class="pg" id="pg-meta">
+    <div class="sh"><div class="sl">Meta Ads</div><div class="st">Facebook + Instagram</div><div class="sd">Resultados de Ads Manager: alcance, impresiones, interacciones e inversión mes a mes.</div></div>
+    <div class="strip">
+      <div class="sx" style="--ac:#1877F2"><div class="v">16.3M</div><div class="l">Alcance Total</div><div class="s">Personas únicas</div></div>
+      <div class="sx" style="--ac:#E1306C"><div class="v">14.9M</div><div class="l">Impresiones</div><div class="s">Exposiciones totales</div></div>
+      <div class="sx" style="--ac:var(--red)"><div class="v">578K</div><div class="l">Interacciones</div><div class="s">Likes + cmts + shares</div></div>
+      <div class="sx" style="--ac:var(--yellow)"><div class="v">$110K</div><div class="l">Inversión MXN</div><div class="s">6 meses</div></div>
+    </div>
+    <div class="g2">
+      <div class="card"><div class="ct">Alcance por Plataforma / Mes</div><div class="cd">Facebook vs Instagram — personas únicas</div><div class="ch-lg"><canvas id="c-meta-rp"></canvas></div></div>
+      <div class="card"><div class="ct">Interacciones Mensuales</div><div class="cd">Tendencia de engagement en Meta</div><div class="ch-lg"><canvas id="c-meta-e"></canvas></div></div>
+    </div>
+    <div class="g2 mt">
+      <div class="card"><div class="ct">Inversión Meta por Mes (MXN)</div><div class="cd">Facebook + Instagram combinado</div><div class="ch"><canvas id="c-meta-sp"></canvas></div></div>
+      <div class="card"><div class="ct">Split Facebook vs Instagram</div><div class="cd">Distribución acumulada de alcance</div><div class="ch" style="display:flex;align-items:center;justify-content:center"><canvas id="c-meta-do" style="max-width:210px;max-height:210px"></canvas></div></div>
+    </div>
+  </div>
+
+  <!-- ══ TIKTOK ══ -->
+  <div class="pg" id="pg-tiktok">
+    <div class="sh"><div class="sl">TikTok Ads</div><div class="st">Video Views & Engagement</div><div class="sd">Dos campañas grandes: Spooky Nuggets (Oct–Nov) y NFL (Ene–Feb). Febrero 2026 fue el mes más grande del semestre.</div></div>
+    <div class="strip">
+      <div class="sx" style="--ac:#FF0050"><div class="v">8.1M</div><div class="l">Video Views</div><div class="s">Acumulado</div></div>
+      <div class="sx" style="--ac:#FF6B9D"><div class="v">14.6K</div><div class="l">Likes Pagados</div></div>
+      <div class="sx" style="--ac:var(--spooky-l)"><div class="v">928</div><div class="l">Nuevos Seguidores</div></div>
+      <div class="sx" style="--ac:var(--yellow)"><div class="v">$85K</div><div class="l">Inversión MXN</div></div>
+    </div>
+    <div class="g2">
+      <div class="card"><div class="ct">Video Views por Mes</div><div class="cd">Feb 2026 = pico máximo NFL</div><div class="ch-lg"><canvas id="c-tt-v"></canvas></div></div>
+      <div class="card"><div class="ct">Inversión TikTok por Mes (MXN)</div><div class="cd">Concentrado en Spooky y NFL</div><div class="ch-lg"><canvas id="c-tt-sp"></canvas></div></div>
+    </div>
+    <div class="card mt">
+      <div class="ct">Comparativo de Campañas TikTok</div>
+      <div class="cd">Spooky Nuggets vs NFL — views e inversión</div>
+      <div style="margin-top:18px">
+        <div class="br"><div class="br-l">👻 Spooky Nuggets</div><div class="br-w"><div class="br-f" style="width:31%;background:var(--spooky-l)"></div></div><div class="br-v nh">2.39M</div></div>
+        <div class="br"><div class="br-l">🏈 NFL Campaign</div><div class="br-w"><div class="br-f" style="width:75%;background:var(--nfl-l)"></div></div><div class="br-v nh">5.73M</div></div>
+      </div>
+      <div class="div"></div>
+      <div class="ch"><canvas id="c-tt-cc"></canvas></div>
+    </div>
+  </div>
+
+  <!-- ══ SPOOKY ══ -->
+  <div class="pg" id="pg-spooky">
+    <div class="sh"><div class="sl">Campaña Estrella</div><div class="st">Spooky Nuggets</div><div class="sd">La campaña de Halloween que activó tres ciudades con nuggets fantasmitas. Oct–Nov 2025.</div></div>
+    <div class="cc sp">
+      <div class="cc-em">👻</div>
+      <div class="cc-tag">Octubre – Noviembre 2025</div>
+      <div class="cc-name">SPOOKY NUGGETS</div>
+      <div class="cc-desc">Activación segmentada en CDMX, MTY y GDL con contenido diferenciado por ciudad. El ad "FB - Replica TikTok - Nacional" generó 304K interacciones en un solo anuncio — el récord del semestre completo.</div>
+      <div class="cc-stats">
+        <div><div class="csv">4.1M</div><div class="csl">Alcance Meta</div></div>
+        <div><div class="csv">2.4M</div><div class="csl">Views TikTok</div></div>
+        <div><div class="csv">473K</div><div class="csl">Interacciones</div></div>
+        <div><div class="csv">$75K</div><div class="csl">Inversión MXN</div></div>
+      </div>
+    </div>
+    <div class="g2">
+      <div class="card"><div class="ct">Views TikTok por Ciudad</div><div class="cd">CDMX · MTY · GDL · Nacional</div><div class="ch"><canvas id="c-sp-geo"></canvas></div></div>
+      <div class="card"><div class="ct">Alcance Meta — Spooky</div><div class="cd">Facebook vs Instagram</div><div class="ch"><canvas id="c-sp-meta"></canvas></div></div>
+    </div>
+    <div class="card mt">
+      <div class="ct">Top Ads — Spooky Nuggets</div><div class="cd">Mejores anuncios por interacción</div>
+      <table class="dt"><thead><tr><th>Plat.</th><th>Anuncio</th><th>Alcance</th><th>Interacciones</th></tr></thead>
+        <tbody>
+          <tr><td><span class="pp fb">FB</span></td><td>FB - Replica TikTok - Nacional</td><td class="nh">339K</td><td class="ng">304K</td></tr>
+          <tr><td><span class="pp ig">IG</span></td><td>IG - Reel Mantenimiento 1 - CDMX</td><td class="nh">241K</td><td class="ng">35K</td></tr>
+          <tr><td><span class="pp ig">IG</span></td><td>IG - Reel Lanzamiento - CDMX</td><td class="nh">242K</td><td class="ng">22K</td></tr>
+          <tr><td><span class="pp ig">IG</span></td><td>IG - Reel Teaser 1 - CDMX</td><td class="nh">130K</td><td class="ng">18K</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ══ NFL ══ -->
+  <div class="pg" id="pg-nfl">
+    <div class="sh"><div class="sl">Campaña Estrella</div><div class="st">NFL Campaign</div><div class="sd">Game Day con Tyson Boneless Mix. La campaña que llevó el Super Bowl a las redes. Ene–Feb 2026.</div></div>
+    <div class="cc nf">
+      <div class="cc-em">🏈</div>
+      <div class="cc-tag">Enero – Febrero 2026</div>
+      <div class="cc-name">NFL CAMPAIGN</div>
+      <div class="cc-desc">Febrero 2026: mayor inversión TikTok del semestre ($46K) y 5.09M de views. Instagram lideró con 2M de alcance en enero. El ad "Alcance - NFL - Master 1" fue el de mayor alcance individual del período: 715K personas.</div>
+      <div class="cc-stats">
+        <div><div class="csv">4.9M</div><div class="csl">Alcance Meta</div></div>
+        <div><div class="csv">5.7M</div><div class="csl">Views TikTok</div></div>
+        <div><div class="csv">85K</div><div class="csl">Interacciones</div></div>
+        <div><div class="csv">$97K</div><div class="csl">Inversión MXN</div></div>
+      </div>
+    </div>
+    <div class="g2">
+      <div class="card"><div class="ct">Views TikTok — Ene vs Feb</div><div class="cd">Enero de arranque, febrero de explosión</div><div class="ch"><canvas id="c-nfl-tt"></canvas></div></div>
+      <div class="card"><div class="ct">Alcance Meta — Ene vs Feb</div><div class="cd">Facebook + Instagram</div><div class="ch"><canvas id="c-nfl-meta"></canvas></div></div>
+    </div>
+    <div class="card mt">
+      <div class="ct">Top Ads — NFL Campaign</div><div class="cd">Mejores anuncios por alcance</div>
+      <table class="dt"><thead><tr><th>Plat.</th><th>Anuncio</th><th>Mes</th><th>Alcance</th><th>Interacciones</th></tr></thead>
+        <tbody>
+          <tr><td><span class="pp ig">IG</span></td><td>Alcance - NFL - Master 1</td><td style="font-size:11px;color:var(--muted)">Ene 26</td><td class="nh">715K</td><td class="ng">13.5K</td></tr>
+          <tr><td><span class="pp ig">IG</span></td><td>Alcance - NFL - Master 1 - Copia</td><td style="font-size:11px;color:var(--muted)">Ene 26</td><td class="nh">695K</td><td class="ng">136</td></tr>
+          <tr><td><span class="pp ig">IG</span></td><td>Alcance - NFL - Tradición</td><td style="font-size:11px;color:var(--muted)">Ene 26</td><td class="nh">661K</td><td class="ng">5.3K</td></tr>
+          <tr><td><span class="pp ig">IG</span></td><td>Alcance - NFL - Boneless Mix</td><td style="font-size:11px;color:var(--muted)">Feb 26</td><td class="nh">404K</td><td class="ng">55</td></tr>
+          <tr><td><span class="pp ig">IG</span></td><td>Alcance - NFL - TikTok 1</td><td style="font-size:11px;color:var(--muted)">Feb 26</td><td class="nh">222K</td><td class="ng">18.3K</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ══ TOP ADS ══ -->
+  <div class="pg" id="pg-topads">
+    <div class="sh"><div class="sl">Análisis</div><div class="st">Top Ads del Semestre</div><div class="sd">Los anuncios con mejor desempeño en alcance y en interacción de los 6 meses completos.</div></div>
+    <div class="g2">
+      <div class="card">
+        <div class="ct" style="color:var(--yellow)">📣 Top 5 por Alcance</div><div class="cd">Anuncios con mayor número de personas únicas</div>
+        <table class="dt"><thead><tr><th>#</th><th>Plat.</th><th>Anuncio</th><th>Mes</th><th>Alcance</th></tr></thead>
+          <tbody>
+            <tr><td style="color:var(--muted);font-family:'JetBrains Mono'">01</td><td><span class="pp ig">IG</span></td><td class="anc">Alcance - NFL - Master 1</td><td style="font-size:11px;color:var(--muted)">Ene 26</td><td class="nh">715K</td></tr>
+            <tr><td style="color:var(--muted);font-family:'JetBrains Mono'">02</td><td><span class="pp ig">IG</span></td><td class="anc">Alcance - NFL - Master 1 - Copia</td><td style="font-size:11px;color:var(--muted)">Ene 26</td><td class="nh">695K</td></tr>
+            <tr><td style="color:var(--muted);font-family:'JetBrains Mono'">03</td><td><span class="pp ig">IG</span></td><td class="anc">Alcance - NFL - Tradición</td><td style="font-size:11px;color:var(--muted)">Ene 26</td><td class="nh">661K</td></tr>
+            <tr><td style="color:var(--muted);font-family:'JetBrains Mono'">04</td><td><span class="pp ig">IG</span></td><td class="anc">Alcance - NFL - Boneless Mix</td><td style="font-size:11px;color:var(--muted)">Feb 26</td><td class="nh">404K</td></tr>
+            <tr><td style="color:var(--muted);font-family:'JetBrains Mono'">05</td><td><span class="pp ig">IG</span></td><td class="anc">Alcance - NFL - Master 1</td><td style="font-size:11px;color:var(--muted)">Feb 26</td><td class="nh">392K</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="card">
+        <div class="ct" style="color:var(--navidad-l)">🔥 Top 5 por Interacción</div><div class="cd">Anuncios con mayor engagement generado</div>
+        <table class="dt"><thead><tr><th>#</th><th>Plat.</th><th>Anuncio</th><th>Mes</th><th>Inter.</th></tr></thead>
+          <tbody>
+            <tr><td style="color:var(--muted);font-family:'JetBrains Mono'">01</td><td><span class="pp fb">FB</span></td><td class="anc">FB - Replica TikTok - Nacional</td><td style="font-size:11px;color:var(--muted)">Oct 25</td><td class="ng">304K</td></tr>
+            <tr><td style="color:var(--muted);font-family:'JetBrains Mono'">02</td><td><span class="pp ig">IG</span></td><td class="anc">IG - Reel Mantenimiento 1 - CDMX</td><td style="font-size:11px;color:var(--muted)">Oct 25</td><td class="ng">35K</td></tr>
+            <tr><td style="color:var(--muted);font-family:'JetBrains Mono'">03</td><td><span class="pp ig">IG</span></td><td class="anc">IG - Reel Lanzamiento - CDMX</td><td style="font-size:11px;color:var(--muted)">Oct 25</td><td class="ng">22K</td></tr>
+            <tr><td style="color:var(--muted);font-family:'JetBrains Mono'">04</td><td><span class="pp ig">IG</span></td><td class="anc">Alcance - NFL - TikTok 1</td><td style="font-size:11px;color:var(--muted)">Feb 26</td><td class="ng">18.3K</td></tr>
+            <tr><td style="color:var(--muted);font-family:'JetBrains Mono'">05</td><td><span class="pp ig">IG</span></td><td class="anc">IG - Reel Teaser 1 - CDMX</td><td style="font-size:11px;color:var(--muted)">Oct 25</td><td class="ng">17.6K</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card mt">
+      <div class="ct">Distribución de Alcance por Campaña — Meta</div>
+      <div class="cd">Participación de cada tipo de campaña en el alcance total acumulado</div>
+      <div class="ch-lg"><canvas id="c-camp-d"></canvas></div>
+    </div>
+  </div>
+
+  <!-- ══ STORY ══ -->
+  <div class="pg" id="pg-story">
+    <div class="sh"><div class="sl">Narrativa del Semestre</div><div class="st">El Story Detrás de los Números</div><div class="sd">Qué pasó cada mes, por qué pasó y qué significó para Tyson en digital.</div></div>
+    <div id="story-wrap"></div>
+  </div>
+
+  <!-- ══ POSTS ══ -->
+  <div class="pg" id="pg-posts">
+    <div class="sh">
+      <div class="sl">Galería de Contenido</div>
+      <div class="st">Mejores Posts por Mes</div>
+      <div class="sd">Selecciona un mes y agrega el embed del mejor post por alcance y por interacción directamente aquí.</div>
+    </div>
+    <div class="mpills" id="mpills"></div>
+    <div id="ppanels"></div>
+  </div>
+
+</div><!-- /main -->
+
+<script>
+// ════════════ DATA ════════════
+const MONTHS = ['Oct 2025','Nov 2025','Dic 2025','Ene 2026','Feb 2026','Mar 2026'];
+const D = {
+  meta: {
+    reach: [4089544,0,2543719,2458097,2786476,455983],
+    fb:    [1077124,0,1540272,387421,667893,43285],
+    ig:    [3012420,0,1003447,2070676,2118583,412698],
+    eng:   [473071,0,14146,33257,52917,2398],
+    spend: [40417.7,0,18000,22325.25,26677.07,3176.97],
+  },
+  tt: {
+    views: [1997945,389441,0,637356,5095732,0],
+    spend: [28525.55,6339.42,0,4278.75,45942.52,0],
+  }
+};
+const MC = ['#A855F7','#6B6B72','#4ADE80','#60A5FA','#60A5FA','#D0021B'];
+const fmt = n => n>=1e6?(n/1e6).toFixed(1)+'M':n>=1e3?(n/1e3).toFixed(0)+'K':n.toLocaleString('es-MX');
+
+// ════════════ NAV ════════════
+const TITLES = {ov:'Overview',meta:'Meta Ads',tiktok:'TikTok Ads',spooky:'👻 Spooky Nuggets',nfl:'🏈 NFL Campaign',topads:'Top Ads del Semestre',story:'Narrativa Mensual',posts:'Mejores Posts'};
+function nav(id, el) {
+  document.querySelectorAll('.pg').forEach(p => p.classList.remove('on'));
+  document.getElementById('pg-'+id).classList.add('on');
+  document.querySelectorAll('.ni').forEach(n => n.classList.remove('active'));
+  if (el) el.classList.add('active');
+  document.getElementById('tbt').textContent = TITLES[id] || id;
+  document.getElementById('main').scrollTo({top:0, behavior:'instant'});
+  document.getElementById('sb').classList.remove('open');
+}
+
+// ════════════ LOGO UPLOAD ════════════
+document.getElementById('logo-file-input').addEventListener('change', function(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(ev) {
+    const img = document.getElementById('logo-img');
+    img.src = ev.target.result;
+    img.style.display = 'block';
+    document.getElementById('logo-ph').style.display = 'none';
+    localStorage.setItem('tyson_logo', ev.target.result);
+  };
+  reader.readAsDataURL(file);
+});
+// Restore saved logo
+(function() {
+  const saved = localStorage.getItem('tyson_logo');
+  if (saved) {
+    const img = document.getElementById('logo-img');
+    img.src = saved; img.style.display = 'block';
+    document.getElementById('logo-ph').style.display = 'none';
+  }
+})();
+
+// ════════════ CHART DEFAULTS ════════════
+Chart.defaults.color = '#777';
+Chart.defaults.borderColor = 'rgba(255,255,255,0.05)';
+Chart.defaults.font.family = "'DM Sans', sans-serif";
+Chart.defaults.font.size = 11;
+const G = {color:'rgba(255,255,255,0.04)', drawBorder:false};
+const B = {responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}};
+const LL = {display:true, labels:{boxWidth:9, font:{size:10}, padding:10}};
+
+// ════════════ TIMELINE ════════════
+function buildTimeline() {
+  const tl = document.getElementById('tl-main');
+  const cfg = [
+    {m:'Oct 2025', cls:'sp', tags:['sp'], kv:{'Alcance':'4.1M','TT Views':'2M','Spend':'$69K'}},
+    {m:'Nov 2025', cls:'',   tags:['cl'], kv:{'Alcance':'—','TT Views':'389K','Spend':'$6.3K'}},
+    {m:'Dic 2025', cls:'nv', tags:['nv'], kv:{'Alcance':'2.5M','TT Views':'—','Spend':'$18K'}},
+    {m:'Ene 2026', cls:'nf', tags:['nf'], kv:{'Alcance':'2.5M','TT Views':'637K','Spend':'$27K'}},
+    {m:'Feb 2026', cls:'nf', tags:['nf'], kv:{'Alcance':'2.8M','TT Views':'5.1M','Spend':'$73K'}},
+    {m:'Mar 2026', cls:'on', tags:['cl'], kv:{'Alcance':'456K','TT Views':'—','Spend':'$3.2K'}},
+  ];
+  const labels = {sp:'👻 Spooky', nf:'🏈 NFL', nv:'🎄 Navidad', cl:'Calendario'};
+  cfg.forEach(c => {
+    const d = document.createElement('div');
+    d.className = `tc ${c.cls}`;
+    d.innerHTML = `<div class="tdw"><div class="td"></div></div>
+      <div class="tm">${c.m}</div>
+      <div class="tt-tags">${c.tags.map(t=>`<span class="tt ${t}">${labels[t]}</span>`).join('')}</div>
+      <div class="tk">${Object.entries(c.kv).map(([k,v])=>`<div class="tkr">${k}: <b>${v}</b></div>`).join('')}</div>`;
+    tl.appendChild(d);
+  });
+}
+
+// ════════════ CHARTS ════════════
+function buildCharts() {
+  // OV reach
+  new Chart('c-ov-r', {type:'bar', data:{labels:MONTHS, datasets:[
+    {label:'Facebook', data:D.meta.fb, backgroundColor:'rgba(24,119,242,0.65)', borderRadius:4},
+    {label:'Instagram', data:D.meta.ig, backgroundColor:'rgba(225,48,108,0.65)', borderRadius:4},
+  ]}, options:{...B, plugins:{legend:LL}, scales:{x:{stacked:true,grid:G}, y:{stacked:true,grid:G,ticks:{callback:v=>fmt(v)}}}}});
+
+  // OV spend
+  new Chart('c-ov-s', {type:'bar', data:{labels:MONTHS, datasets:[
+    {label:'Meta', data:D.meta.spend, backgroundColor:'rgba(24,119,242,0.65)', borderRadius:4},
+    {label:'TikTok', data:D.tt.spend, backgroundColor:'rgba(255,0,80,0.65)', borderRadius:4},
+  ]}, options:{...B, plugins:{legend:LL}, scales:{x:{stacked:true,grid:G}, y:{stacked:true,grid:G,ticks:{callback:v=>'$'+fmt(v)}}}}});
+
+  // Meta reach/platform
+  new Chart('c-meta-rp', {type:'bar', data:{labels:MONTHS, datasets:[
+    {label:'Facebook', data:D.meta.fb, backgroundColor:'rgba(24,119,242,0.65)', borderRadius:4},
+    {label:'Instagram', data:D.meta.ig, backgroundColor:'rgba(225,48,108,0.65)', borderRadius:4},
+  ]}, options:{...B, plugins:{legend:LL}, scales:{x:{stacked:true,grid:G}, y:{stacked:true,grid:G,ticks:{callback:v=>fmt(v)}}}}});
+
+  // Meta eng line
+  const ctx = document.getElementById('c-meta-e').getContext('2d');
+  const grad = ctx.createLinearGradient(0,0,0,270);
+  grad.addColorStop(0,'rgba(208,2,27,0.38)'); grad.addColorStop(1,'rgba(208,2,27,0.02)');
+  new Chart(ctx, {type:'line', data:{labels:MONTHS, datasets:[{data:D.meta.eng, borderColor:'#D0021B', backgroundColor:grad, fill:true, tension:.4, pointBackgroundColor:'#D0021B', pointRadius:4, pointHoverRadius:6}]}, options:{...B, scales:{x:{grid:G}, y:{grid:G, ticks:{callback:v=>fmt(v)}}}}});
+
+  // Meta spend
+  new Chart('c-meta-sp', {type:'bar', data:{labels:MONTHS, datasets:[{data:D.meta.spend, backgroundColor:MONTHS.map((_,i)=>MC[i]+'99'), borderColor:MONTHS.map((_,i)=>MC[i]), borderWidth:1, borderRadius:5}]}, options:{...B, scales:{x:{grid:G}, y:{grid:G, ticks:{callback:v=>'$'+fmt(v)}}}}});
+
+  // Meta donut
+  const fbT = D.meta.fb.reduce((a,b)=>a+b,0), igT = D.meta.ig.reduce((a,b)=>a+b,0);
+  new Chart('c-meta-do', {type:'doughnut', data:{labels:['Facebook','Instagram'], datasets:[{data:[fbT,igT], backgroundColor:['rgba(24,119,242,0.8)','rgba(225,48,108,0.8)'], borderColor:'var(--surface)', borderWidth:3}]}, options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'bottom',labels:{boxWidth:9,font:{size:10},padding:10}}}, cutout:'65%'}});
+
+  // TikTok views
+  new Chart('c-tt-v', {type:'bar', data:{labels:MONTHS, datasets:[{data:D.tt.views, backgroundColor:D.tt.views.map((_,i)=>i===4?'rgba(255,0,80,0.82)':'rgba(255,0,80,0.22)'), borderColor:D.tt.views.map((_,i)=>i===4?'#FF0050':'rgba(255,0,80,0.35)'), borderWidth:1, borderRadius:5}]}, options:{...B, scales:{x:{grid:G}, y:{grid:G, ticks:{callback:v=>fmt(v)}}}}});
+
+  // TikTok spend
+  new Chart('c-tt-sp', {type:'bar', data:{labels:MONTHS, datasets:[{data:D.tt.spend, backgroundColor:'rgba(255,0,80,0.5)', borderColor:'#FF0050', borderWidth:1, borderRadius:5}]}, options:{...B, scales:{x:{grid:G}, y:{grid:G, ticks:{callback:v=>'$'+fmt(v)}}}}});
+
+  // TikTok camps
+  new Chart('c-tt-cc', {type:'bar', data:{labels:['Spooky Nuggets','NFL'], datasets:[
+    {label:'Views', data:[2387386,5733088], backgroundColor:['rgba(168,85,247,0.65)','rgba(96,165,250,0.65)'], borderRadius:7, yAxisID:'y'},
+    {label:'Gasto MXN', data:[34864.97,50221.27], backgroundColor:['rgba(168,85,247,0.25)','rgba(96,165,250,0.25)'], borderRadius:7, yAxisID:'y1'},
+  ]}, options:{...B, plugins:{legend:LL}, scales:{x:{grid:G}, y:{grid:G, position:'left', ticks:{callback:v=>fmt(v)}}, y1:{grid:{display:false}, position:'right', ticks:{callback:v=>'$'+fmt(v)}}}}});
+
+  // Spooky geo
+  new Chart('c-sp-geo', {type:'doughnut', data:{labels:['CDMX','MTY','GDL','Nacional'], datasets:[{data:[1691119,262782,314808,118677], backgroundColor:['rgba(168,85,247,0.85)','rgba(192,132,252,0.65)','rgba(216,180,254,0.5)','rgba(233,213,255,0.35)'], borderColor:'var(--surface)', borderWidth:3}]}, options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'right',labels:{boxWidth:9,font:{size:10},padding:8}}}, cutout:'60%'}});
+
+  // Spooky meta
+  new Chart('c-sp-meta', {type:'bar', data:{labels:['Facebook','Instagram'], datasets:[{data:[1077124,3012420], backgroundColor:['rgba(24,119,242,0.7)','rgba(225,48,108,0.7)'], borderRadius:7}]}, options:{...B, scales:{x:{grid:G}, y:{grid:G, ticks:{callback:v=>fmt(v)}}}}});
+
+  // NFL TikTok
+  new Chart('c-nfl-tt', {type:'bar', data:{labels:['Ene 2026','Feb 2026'], datasets:[{data:[637356,5095732], backgroundColor:['rgba(96,165,250,0.35)','rgba(96,165,250,0.82)'], borderRadius:7}]}, options:{...B, scales:{x:{grid:G}, y:{grid:G, ticks:{callback:v=>fmt(v)}}}}});
+
+  // NFL Meta
+  new Chart('c-nfl-meta', {type:'bar', data:{labels:['Ene 2026','Feb 2026'], datasets:[
+    {label:'Facebook', data:[387421,667893], backgroundColor:'rgba(24,119,242,0.65)', borderRadius:4},
+    {label:'Instagram', data:[2070676,2118583], backgroundColor:'rgba(225,48,108,0.65)', borderRadius:4},
+  ]}, options:{...B, plugins:{legend:LL}, scales:{x:{stacked:true,grid:G}, y:{stacked:true,grid:G,ticks:{callback:v=>fmt(v)}}}}});
+
+  // Camp dist
+  new Chart('c-camp-d', {type:'bar', data:{
+    labels:['Spooky Nuggets','NFL','Navidad','Calendario'],
+    datasets:[{data:[4089544,4860858,2543719,839698], backgroundColor:['rgba(168,85,247,0.7)','rgba(96,165,250,0.7)','rgba(74,222,128,0.7)','rgba(107,107,114,0.6)'], borderRadius:7}]
+  }, options:{...B, indexAxis:'y', scales:{x:{grid:G, ticks:{callback:v=>fmt(v)}}, y:{grid:{display:false}}}}});
+}
+
+// ════════════ STORIES ════════════
+function buildStories() {
+  const stories = [
+    {m:'Octubre 2025', ac:'#A855F7', t:'El Mes del Terror — y los Nuggets 👻',
+     b:'Octubre fue el mes rey en interacción del semestre. Spooky Nuggets conquistó CDMX, MTY y GDL con estrategia hiper-segmentada por ciudad. El ad "FB - Replica TikTok - Nacional" generó 304K interacciones en un solo anuncio — el récord del período completo. TikTok acompañó con casi 2M de views.',
+     chips:['👻 Spooky Nuggets','🗺️ CDMX · MTY · GDL','🏆 304K interacciones en 1 ad','Meta + TikTok activos']},
+    {m:'Noviembre 2025', ac:'#777', t:'Transición Estratégica 🍂',
+     b:'Mes de mantenimiento y transición. Meta sin inversión activa. TikTok corrió con presupuesto residual de Spooky Nuggets: 389K views con $6.3K de inversión. Una pausa estratégica entre Halloween y la temporada navideña.',
+     chips:['🎃 Cola de Spooky','📉 Sin inversión Meta','🔄 Transición de temporada']},
+    {m:'Diciembre 2025', ac:'#4ADE80', t:'Navidad con Tyson 🎄',
+     b:'Diciembre trajo la campaña navideña con activaciones de Hard Sell y Calendario en Meta. $18K de inversión, 2.5M de personas alcanzadas. Facebook lideró el mes con 1.54M de personas únicas. Sin presencia en TikTok.',
+     chips:['🎄 Campaña Navidad','🛒 Hard Sell activo','2.5M alcance Meta','FB lideró el mes']},
+    {m:'Enero 2026', ac:'#60A5FA', t:'Arranca el Game Day 🏈',
+     b:'Enero marcó el inicio de la campaña NFL. Instagram dominó con 2.07M de alcance — el mayor en IG en un solo mes. TikTok sumó 637K views con los primeros videos de la campaña. Las interacciones en Meta crecieron +135% respecto a diciembre.',
+     chips:['🏈 NFL Launch','📱 Instagram líder del mes','🎬 TikTok activo','📈 +135% interacciones vs dic']},
+    {m:'Febrero 2026', ac:'#60A5FA', t:'El Pico del Semestre — Super Bowl 🏆',
+     b:'Febrero fue el mes más grande del semestre en TikTok: 5.09M de views y $45.9K de inversión, el mayor gasto mensual del período completo. La campaña NFL explotó con el Super Bowl como contexto cultural perfecto. En Meta, 2.8M de alcance y 52.9K de interacciones.',
+     chips:['🏆 Pico TikTok del semestre','5.09M views','🔥 $46K inversión TikTok','52.9K interacciones Meta']},
+    {m:'Marzo 2026', ac:'#D0021B', t:'Cierre Ordenado 📅',
+     b:'Marzo cerró el período con inversiones de mantenimiento en Meta ($3.2K). Campaña de Calendario tomó el control. Un aterrizaje ordenado después del pico NFL — con el semestre acumulando métricas históricas para la marca.',
+     chips:['📅 Calendario','💡 Presupuesto mínimo','✅ Cierre de temporada','🔜 Preparando siguiente ciclo']},
+  ];
+  const w = document.getElementById('story-wrap');
+  stories.forEach(s => {
+    const d = document.createElement('div');
+    d.className = 'sc'; d.style.setProperty('--ac', s.ac);
+    d.innerHTML = `<div class="sc-m">${s.m}</div><div class="sc-t">${s.t}</div><div class="sc-b">${s.b}</div>
+      <div class="sc-cs">${s.chips.map(c=>`<span class="sc-c" style="background:${s.ac}18;color:${s.ac};border:1px solid ${s.ac}2a">${c}</span>`).join('')}</div>`;
+    w.appendChild(d);
+  });
+}
+
+// ════════════ POSTS ════════════
+function buildPosts() {
+  const pills = document.getElementById('mpills');
+  const panels = document.getElementById('ppanels');
+  const acc = ['sp','','','nf','nf',''];
+
+  MONTHS.forEach((m, i) => {
+    const btn = document.createElement('button');
+    btn.className = `mpill ${acc[i]} ${i===0?'on':''}`;
+    btn.textContent = m;
+    btn.onclick = () => {
+      document.querySelectorAll('.mpill').forEach(p => p.classList.remove('on'));
+      btn.classList.add('on');
+      document.querySelectorAll('.ppanel').forEach(p => p.classList.remove('on'));
+      document.getElementById(`pp-${i}`).classList.add('on');
+    };
+    pills.appendChild(btn);
+
+    const panel = document.createElement('div');
+    panel.id = `pp-${i}`; panel.className = `ppanel ${i===0?'on':''}`;
+
+    ['reach','engagement'].forEach(type => {
+      const key = `tyson_${m}_${type}`;
+      const saved = localStorage.getItem(key) || '';
+      const icon = type==='reach' ? '📣' : '🔥';
+      const label = type==='reach' ? 'Mejor Alcance' : 'Mejor Interacción';
+      const card = document.createElement('div');
+      card.className = 'post-card';
+      card.innerHTML = `
+        <div class="pc-head">
+          <span class="pc-badge ${type==='reach'?'r':'e'}">${icon} ${label}</span>
+          <span style="font-size:11px;color:var(--muted)">${m}</span>
+        </div>
+        <div class="pc-body${saved?' filled':''}" id="pb-${key}">
+          ${saved
+            ? `<div class="emb-rendered">${saved}</div>`
+            : `<div class="pc-icon">${icon}</div>
+               <div class="pc-hint">Pega el código embed de<br>Instagram o TikTok aquí</div>
+               <textarea class="pc-input" id="inp-${key}" placeholder='&lt;blockquote class="instagram-media"...&gt;&#10;o &lt;iframe src="https://www.tiktok.com..."&gt;'></textarea>
+               <button class="pc-btn" onclick="saveEmbed('${key}')">Agregar Post</button>`}
+        </div>`;
+      panel.appendChild(card);
+    });
+    panels.appendChild(panel);
+  });
+}
+
+window.saveEmbed = function(key) {
+  const inp = document.getElementById(`inp-${key}`);
+  if (!inp?.value.trim()) return;
+  localStorage.setItem(key, inp.value.trim());
+  const b = document.getElementById(`pb-${key}`);
+  b.className = 'pc-body filled';
+  b.innerHTML = `<div class="emb-rendered">${inp.value.trim()}</div>`;
+  if (inp.value.includes('instagram-media') && !document.getElementById('ig-s')) {
+    const s = document.createElement('script'); s.id='ig-s'; s.src='https://www.instagram.com/embed.js'; document.body.appendChild(s);
+  }
+};
+
+// ════════════ INIT ════════════
+document.addEventListener('DOMContentLoaded', () => {
+  buildTimeline(); buildCharts(); buildStories(); buildPosts();
+});
+</script>
+</body>
+</html>
